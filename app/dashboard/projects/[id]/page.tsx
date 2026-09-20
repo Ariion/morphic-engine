@@ -1,227 +1,259 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
-  Key, 
+  ArrowLeft, 
   Copy, 
   Check, 
-  Eye, 
-  Layers, 
-  Globe, 
   Save, 
+  Sparkles, 
+  Eye, 
   Sliders, 
-  ShieldCheck,
+  Code, 
+  Palette,
   RefreshCw
 } from 'lucide-react';
 
-interface ThemeTokens {
-  primaryColor: string;
-  accentColor: string;
-  depthFactor: number;
-}
+export default function ProjectDashboard({ params }: { params: Promise<{ id: string }> }) {
+  // Dépaquetage des paramètres pour Next.js 15
+  const resolvedParams = React.use(params);
+  const projectId = resolvedParams.id;
 
-interface ProjectData {
-  id: string;
-  name: string;
-  domain: string;
-  apiKey: string;
-  spatialEnabled: boolean;
-  themeTokens: ThemeTokens;
-}
-
-export default function ProjectDashboardPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
-}) {
-  const resolvedParams = use(params);
-
-  const [project, setProject] = useState<ProjectData>({
-    id: resolvedParams.id || 'prj_98234719',
-    name: 'E-Commerce Spatial Store',
-    domain: 'https://store.acme.com',
-    apiKey: 'mph_live_9a8f7d6e5c4b3a210987',
-    spatialEnabled: true,
-    themeTokens: {
-      primaryColor: '#6366f1',
-      accentColor: '#ec4899',
-      depthFactor: 0.08,
-    },
-  });
-
+  // États du projet
+  const [projectName, setProjectName] = useState("Projet E-commerce 3D");
+  const [primaryColor, setPrimaryColor] = useState("#6366f1");
+  const [accentColor, setAccentColor] = useState("#ec4899");
+  const [depthMultiplier, setDepthMultiplier] = useState(0.15);
+  const [glowEnabled, setGlowEnabled] = useState(true);
+  const [maxTilt, setMaxTilt] = useState(15);
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'design' | 'embed'>('design');
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const scriptSnippet = `<script src="https://cdn.morphic.engine/v1.js" data-api-key="${project.apiKey}" async></script>`;
+  // Script d'intégration généré dynamiquement
+  const scriptCode = `<script src="https://morphic-engine-sable.vercel.app/v1.js" data-api-key="mph_live_${projectId}" async></script>`;
 
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(scriptSnippet);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(scriptCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSaveConfig = async () => {
+  const handleSave = () => {
     setIsSaving(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      alert('Configuration mise à jour avec succès !');
-    } catch (err) {
-      console.error(err);
-    } finally {
+    setTimeout(() => {
       setIsSaving(false);
-    }
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 font-sans">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-slate-800 pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Layers className="w-7 h-7 text-indigo-500" />
-              {project.name}
-            </h1>
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1">
-              <Globe className="w-3 h-3" /> {project.domain}
-            </span>
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 md:p-10">
+      {/* Header & Navigation */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/dashboard" 
+            className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="bg-transparent text-2xl font-bold text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded px-1"
+              />
+              <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-mono">
+                ID: {projectId}
+              </span>
+            </div>
+            <p className="text-sm text-slate-400 mt-1">Configurez le comportement spatial et le design en temps réel.</p>
           </div>
-          <p className="text-slate-400 text-sm mt-1">
-            Gérez l'interface spatiale et les jetons graphiques en temps réel.
-          </p>
         </div>
 
         <button
-          onClick={handleSaveConfig}
+          onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition shadow-lg shadow-indigo-600/20 disabled:opacity-50"
         >
-          {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isSaving ? 'Enregistrement...' : 'Sauvegarder'}
+          {isSaving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : savedSuccess ? (
+            <Check className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {isSaving ? "Sauvegarde..." : savedSuccess ? "Enregistré !" : "Sauvegarder"}
         </button>
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-7 space-y-6">
-          <div className="flex space-x-1 rounded-xl bg-slate-900 p-1 border border-slate-800">
-            <button
-              onClick={() => setActiveTab('design')}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'design' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Sliders className="w-4 h-4" /> Jetons Graphiques
-            </button>
-            <button
-              onClick={() => setActiveTab('embed')}
-              className={`w-full py-2.5 text-sm font-medium rounded-lg flex items-center justify-center gap-2 transition-all ${
-                activeTab === 'embed' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Key className="w-4 h-4" /> Clé API & Intégration
-            </button>
+        {/* Colonne de Contrôle */}
+        <div className="lg:col-span-6 space-y-6">
+          {/* Tag d'intégration */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
+                <Code className="w-4 h-4" />
+                Script d'intégration
+              </div>
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? "Copié !" : "Copier"}
+              </button>
+            </div>
+            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 font-mono text-xs text-slate-300 overflow-x-auto select-all">
+              {scriptCode}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Collez ce tag dans la balise <code className="text-slate-400">&lt;head&gt;</code> de votre site web.
+            </p>
           </div>
 
-          {activeTab === 'design' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-2">Couleur Principale</label>
-                  <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                    <input
-                      type="color"
-                      value={project.themeTokens.primaryColor}
-                      onChange={(e) =>
-                        setProject({
-                          ...project,
-                          themeTokens: { ...project.themeTokens, primaryColor: e.target.value },
-                        })
-                      }
-                      className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
-                    />
-                    <input
-                      type="text"
-                      value={project.themeTokens.primaryColor}
-                      onChange={(e) =>
-                        setProject({
-                          ...project,
-                          themeTokens: { ...project.themeTokens, primaryColor: e.target.value },
-                        })
-                      }
-                      className="bg-transparent text-sm font-mono text-white focus:outline-none w-full"
-                    />
-                  </div>
-                </div>
+          {/* Style & Thème */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-5">
+            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm border-b border-slate-800 pb-3">
+              <Palette className="w-4 h-4" />
+              Apparence & Thème
+            </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-2">Couleur d'Accent</label>
-                  <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-lg border border-slate-800">
-                    <input
-                      type="color"
-                      value={project.themeTokens.accentColor}
-                      onChange={(e) =>
-                        setProject({
-                          ...project,
-                          themeTokens: { ...project.themeTokens, accentColor: e.target.value },
-                        })
-                      }
-                      className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
-                    />
-                    <input
-                      type="text"
-                      value={project.themeTokens.accentColor}
-                      onChange={(e) =>
-                        setProject({
-                          ...project,
-                          themeTokens: { ...project.themeTokens, accentColor: e.target.value },
-                        })
-                      }
-                      className="bg-transparent text-sm font-mono text-white focus:outline-none w-full"
-                    />
-                  </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-2">Couleur Primaire</label>
+                <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+                  />
+                  <span className="font-mono text-xs uppercase text-slate-300">{primaryColor}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-2">Couleur Accent</label>
+                <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer bg-transparent border-0"
+                  />
+                  <span className="font-mono text-xs uppercase text-slate-300">{accentColor}</span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'embed' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" /> Script universel
-              </h2>
-              <div className="relative bg-slate-950 rounded-lg p-4 border border-slate-800 font-mono text-xs text-slate-300">
-                <code>{scriptSnippet}</code>
-                <button
-                  onClick={handleCopyScript}
-                  className="absolute top-3 right-3 p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-md border border-slate-700"
-                >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
+          {/* Réglages Physiques 3D */}
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-5">
+            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm border-b border-slate-800 pb-3">
+              <Sliders className="w-4 h-4" />
+              Paramètres Physiques 3D
             </div>
-          )}
+
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-slate-400">Intensité de la profondeur (Depth)</span>
+                <span className="font-mono text-indigo-400">{depthMultiplier}x</span>
+              </div>
+              <input
+                type="range"
+                min="0.01"
+                max="0.5"
+                step="0.01"
+                value={depthMultiplier}
+                onChange={(e) => setDepthMultiplier(parseFloat(e.target.value))}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-slate-400">Angle d'inclinaison max (Tilt)</span>
+                <span className="font-mono text-indigo-400">{maxTilt}°</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="35"
+                step="1"
+                value={maxTilt}
+                onChange={(e) => setMaxTilt(parseInt(e.target.value))}
+                className="w-full accent-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs font-medium text-slate-400">Effet Glow volumétrique</span>
+              <button
+                onClick={() => setGlowEnabled(!glowEnabled)}
+                className={`w-12 h-6 rounded-full transition-colors relative p-1 ${
+                  glowEnabled ? 'bg-indigo-600' : 'bg-slate-800'
+                }`}
+              >
+                <div
+                  className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                    glowEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="lg:col-span-5">
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-6 sticky top-8 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Eye className="w-4 h-4 text-indigo-400" /> Aperçu du Rendu Direct
-              </h2>
+        {/* Colonne de Prévisualisation Temps Réel */}
+        <div className="lg:col-span-6">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 text-indigo-400 font-semibold text-sm">
+                <Eye className="w-4 h-4" />
+                Prévisualisation Temps Réel
+              </div>
+              <span className="text-xs text-slate-500">Rendu du composant</span>
             </div>
-            <div
-              className="w-full h-64 rounded-lg border border-slate-800 relative flex flex-col justify-between p-6"
-              style={{
-                background: `radial-gradient(circle at 50% 50%, ${project.themeTokens.primaryColor}22 0%, #020617 100%)`,
-              }}
-            >
-              <span className="text-xs font-mono text-slate-300">Aperçu Réactif</span>
-              <button
-                className="w-full py-2 px-4 rounded font-medium text-xs text-white"
-                style={{ backgroundColor: project.themeTokens.accentColor }}
+
+            <div className="flex-1 min-h-[380px] bg-slate-950 rounded-xl border border-slate-800/80 p-8 flex items-center justify-center relative overflow-hidden">
+              <div
+                className="w-full max-w-sm p-6 rounded-2xl border transition-all duration-200 ease-out shadow-2xl relative"
+                style={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  borderColor: 'rgba(51, 65, 85, 0.8)',
+                  boxShadow: glowEnabled
+                    ? `0 20px 40px -15px ${primaryColor}40, 0 0 20px ${accentColor}30`
+                    : '0 20px 25px -5px rgba(0,0,0,0.5)',
+                  transform: `perspective(1000px) rotateX(4deg) rotateY(-4deg) translateZ(${depthMultiplier * 100}px)`
+                }}
               >
-                Bouton Généré
-              </button>
+                <div
+                  className="inline-block px-3 py-1 rounded-full text-xs font-semibold text-white mb-3 shadow-sm"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <Sparkles className="w-3 h-3 inline mr-1" />
+                  Effet Actif
+                </div>
+
+                <h3 className="text-lg font-bold text-white mb-2">Composant Dynamique</h3>
+                <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                  Cette carte réagit aux variables dynamiques injectées par le moteur Morphic.
+                </p>
+
+                <button
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-white shadow-md transition-transform hover:scale-105"
+                  style={{ backgroundColor: accentColor }}
+                >
+                  Bouton d'Action Spatiale
+                </button>
+              </div>
             </div>
           </div>
         </div>
