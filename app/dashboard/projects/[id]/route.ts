@@ -1,79 +1,92 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
-};
+export async function GET() {
+  const jsContent = `
+(function() {
+  console.log('🚀 Morphic Engine v1.0 initialisé...');
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
-}
+  // 1. Récupération de la clé API depuis la balise script
+  const scriptTag = document.currentScript || document.querySelector('script[data-api-key]');
+  const apiKey = scriptTag ? scriptTag.getAttribute('data-api-key') : null;
 
-// GET : Recherche par ID (UUID) ou par API Key (pour le CDN)
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-
-  try {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-    const { data: project, error } = isUuid
-      ? await supabase.from('projects').select('*').eq('id', id).single()
-      : await supabase.from('projects').select('*').eq('api_key', id).single();
-
-    if (error || !project) {
-      return NextResponse.json(
-        { error: 'Projet introuvable' },
-        { status: 404, headers: corsHeaders }
-      );
-    }
-
-    return NextResponse.json(project, { status: 200, headers: corsHeaders });
-  } catch (err) {
-    return NextResponse.json(
-      { error: 'Erreur serveur Supabase' },
-      { status: 500, headers: corsHeaders }
-    );
+  if (!apiKey) {
+    console.warn('⚠️ Morphic Engine: Aucune clé API (data-api-key) détectée sur la balise <script>.');
+    return;
   }
-}
 
-// PUT : Mise à jour de la config depuis le Dashboard
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-
-  try {
-    const body = await request.json();
-
-    const { data, error } = await supabase
-      .from('projects')
-      .update({
-        name: body.name,
-        domain: body.domain,
-        spatial_enabled: body.spatial_enabled ?? true,
-        theme_tokens: body.theme_tokens || {
-          primaryColor: body.primaryColor || '#6366f1',
-          accentColor: body.accentColor || '#ec4899',
-          depthFactor: body.depthFactor ?? 0.08,
-        },
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400, headers: corsHeaders });
+  // Déterminer l'URL du serveur API de manière dynamique
+  let baseUrl = 'https://morphic-engine-sable.vercel.app';
+  if (scriptTag && scriptTag.src) {
+    try {
+      const url = new URL(scriptTag.src);
+      baseUrl = url.origin;
+    } catch (e) {
+      // Fallback au domaine courant
+      baseUrl = window.location.origin;
     }
-
-    return NextResponse.json({ success: true, project: data }, { status: 200, headers: corsHeaders });
-  } catch (err) {
-    return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500, headers: corsHeaders });
   }
+
+  // 2. Chargement de la configuration du projet depuis Supabase
+  fetch(\`\${baseUrl}/api/projects/\${apiKey}\`)
+    .then((res) => {
+      if (!res.ok) throw new Error('Impossible de charger la configuration du projet.');
+      return res.json();
+    })
+    .then((project) => {
+      // Extraire theme_tokens avec valeurs par défaut de secours
+      const tokens = project.theme_tokens || {};
+      const primaryColor = tokens.primaryColor || '#6366f1';
+      const accentColor = tokens.accentColor || '#ec4899';
+      const depthFactor = typeof tokens.depthFactor === 'number' ? tokens.depthFactor : 0.08;
+      const spatialEnabled = project.spatial_enabled !== false;
+
+      // 3. Injection dynamique des variables CSS
+      document.documentElement.style.setProperty('--morphic-primary', primaryColor);
+      document.documentElement.style.setProperty('--morphic-accent', accentColor);
+
+      // Appliquer automatiquement les styles sur les boutons ciblés
+      const buttons = document.querySelectorAll('.morphic-btn');
+      buttons.forEach((btn) => {
+        btn.style.backgroundColor = accentColor;
+        btn.style.color = '#ffffff';
+        btn.style.transition = 'all 0.2s ease';
+      });
+
+      // 4. Gestion des interactions spatiales 3D / Tilt
+      if (spatialEnabled) {
+        const interactiveElements = document.querySelectorAll('.morphic-interactive');
+
+        window.addEventListener('mousemove', (e) => {
+          const { clientX, clientY } = e;
+          const { innerWidth, innerHeight } = window;
+
+          // Normalisation des coordonnées entre -1 et 1
+          const x = (clientX / innerWidth - 0.5) * 2;
+          const y = (clientY / innerHeight - 0.5) * 2;
+
+          interactiveElements.forEach((el) => {
+            // Lecture du facteur de profondeur (spécifique à l'élément ou issu du jeton global)
+            const customDepth = el.getAttribute('data-morphic-depth');
+            const depth = customDepth ? parseFloat(customDepth) : depthFactor;
+
+            const tiltX = -y * 25 * depth * 10;
+            const tiltY = x * 25 * depth * 10;
+
+            el.style.transform = \`perspective(1000px) rotateX(\${tiltX}deg) rotateY(\${tiltY}deg) translateZ(\${depth * 200}px)\`;
+            el.style.transition = 'transform 0.1s ease-out';
+          });
+        });
+      }
+    })
+    .catch((err) => console.error('Morphic Engine Error:', err));
+})();
+  `;
+
+  return new NextResponse(jsContent, {
+    headers: {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'public, max-age=60, s-maxage=60',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
 }
